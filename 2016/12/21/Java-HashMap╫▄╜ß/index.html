@@ -1,0 +1,587 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="Java中HashMap使用非常频繁的数据结构，其源码实现也有很多值得学习参考的地方。这里总结下我的学习，源码基于Jdk1.7，Java8中HashMap有很大的优化改进，再折腾学习。 基本思想HashMap本身就是一个散列表（也叫哈希表），是根据键（Key）而直接访问在内存存储位置的数据结构。HashMap存储的是Key-Value对，通过计算关于Key的函数，将要查询的Value映射到表中的一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java HashMap源码学习总结">
+<meta property="og:url" content="http://yoursite.com/2016/12/21/Java-HashMap╫▄╜ß/index.html">
+<meta property="og:site_name" content="My Blog">
+<meta property="og:description" content="Java中HashMap使用非常频繁的数据结构，其源码实现也有很多值得学习参考的地方。这里总结下我的学习，源码基于Jdk1.7，Java8中HashMap有很大的优化改进，再折腾学习。 基本思想HashMap本身就是一个散列表（也叫哈希表），是根据键（Key）而直接访问在内存存储位置的数据结构。HashMap存储的是Key-Value对，通过计算关于Key的函数，将要查询的Value映射到表中的一">
+<meta property="og:updated_time" content="2016-12-22T17:19:14.507Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java HashMap源码学习总结">
+<meta name="twitter:description" content="Java中HashMap使用非常频繁的数据结构，其源码实现也有很多值得学习参考的地方。这里总结下我的学习，源码基于Jdk1.7，Java8中HashMap有很大的优化改进，再折腾学习。 基本思想HashMap本身就是一个散列表（也叫哈希表），是根据键（Key）而直接访问在内存存储位置的数据结构。HashMap存储的是Key-Value对，通过计算关于Key的函数，将要查询的Value映射到表中的一">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+  <title> Java HashMap源码学习总结 | My Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">My Blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Java HashMap源码学习总结
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-12-21T21:24:05+08:00" content="2016-12-21">
+              2016-12-21
+            </time>
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/12/21/Java-HashMap╫▄╜ß/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/12/21/Java-HashMap╫▄╜ß/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Java中HashMap使用非常频繁的数据结构，其源码实现也有很多值得学习参考的地方。这里总结下我的学习，源码基于Jdk1.7，Java8中HashMap有很大的优化改进，再折腾学习。</p>
+<h1 id="基本思想"><a href="#基本思想" class="headerlink" title="基本思想"></a>基本思想</h1><p>HashMap本身就是一个散列表（也叫哈希表），是根据键（Key）而直接访问在内存存储位置的数据结构。HashMap存储的是Key-Value对，通过计算关于Key的函数，将要查询的Value映射到表中的一个记录访问，这样可以大大加快查找速度。其中映射函数称为散列函数（Hash函数），存放记录的数组称为散列表。当产生冲突时，HashMap将散列到同一个存储位置的所有元素保存在一个链表中。所以HashMap基本数据结构就是数组+链表实现的。<br>还有就是散列表（HashMap）中的<strong>容量</strong>(Capacity)和<strong>负载因子</strong>(Loadfactor)两个参数的理解。容量就是数组的大小，负载因子表示数组的填满程度，当数组中的元素（entry）数目大于Capacity*LoadFactor时候，就要对数组扩容，HashMap中默认会扩大两倍。HashMap默认的Capacity初始值为16，LoadFactor默认初始值为0.75。</p>
+<h1 id="HashMap中的数据结构"><a href="#HashMap中的数据结构" class="headerlink" title="HashMap中的数据结构"></a>HashMap中的数据结构</h1><h2 id="Entry对象"><a href="#Entry对象" class="headerlink" title="Entry对象"></a>Entry对象</h2><p>HashMap中的Entry定义：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">static class Entry&lt;K,V&gt; implements Map.Entry&lt;K,V&gt; &#123;</div><div class="line">      final K key;</div><div class="line">      V value;</div><div class="line">      Entry&lt;K,V&gt; next;</div><div class="line">      int hash;</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>Entry对象为HashMap中的内部类，实现了Map.Entry接口。Entry对象其实就是链表节点，一个Key-Value对用一个Entry对象表示。其中key、value存储的自然是键和值，next保存了下一个Entry对象的引用，hash为key对应的Hash值。</p>
+<h2 id="HashIterator"><a href="#HashIterator" class="headerlink" title="HashIterator"></a>HashIterator</h2><p>HashIterator是HahMap中迭代器的基本实现，然后ValueIterator、KeyIterator、EntryIterator都继承了HashIterator并重写了next()方法，实现了Key、Value和Entry的Iterator访问。理解了HashMap的原理后HashIterator也很容易理解了。首先在HashIterator的构造函数中将index移动到散列表中第一个不为空的bucket，比较重要的方法是nextEntry()方法，其实也就是在bucket上的链表和bucket之间移动。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line">private abstract class HashIterator&lt;E&gt; implements Iterator&lt;E&gt; &#123;</div><div class="line">      Entry&lt;K,V&gt; next;        // next entry to return</div><div class="line">      int expectedModCount;   // For fast-fail</div><div class="line">      int index;              // current slot</div><div class="line">      Entry&lt;K,V&gt; current;     // current entry</div><div class="line"></div><div class="line">      //构造函数</div><div class="line">      HashIterator() &#123;</div><div class="line">      	//记录迭代初始的entry数目</div><div class="line">          expectedModCount = modCount;</div><div class="line">          //将index移动到的第一个非空的bucket，即数组中首个非空位置</div><div class="line">          if (size &gt; 0) &#123; // advance to first entry</div><div class="line">              Entry[] t = table;</div><div class="line">              while (index &lt; t.length &amp;&amp; (next = t[index++]) == null)</div><div class="line">                  ;</div><div class="line">          &#125;</div><div class="line">      &#125;</div><div class="line"></div><div class="line">      public final boolean hasNext() &#123;</div><div class="line">          return next != null;</div><div class="line">      &#125;</div><div class="line"></div><div class="line">      final Entry&lt;K,V&gt; nextEntry() &#123;</div><div class="line">      	//当有其它线程改变了HashMap的结构（增加或者移除元素），将会抛出ConcurrentModificationException</div><div class="line">          if (modCount != expectedModCount)</div><div class="line">              throw new ConcurrentModificationException();</div><div class="line">          Entry&lt;K,V&gt; e = next;</div><div class="line">          if (e == null)</div><div class="line">              throw new NoSuchElementException();</div><div class="line"></div><div class="line">          //到了链表末尾</div><div class="line">          if ((next = e.next) == null) &#123;</div><div class="line">              Entry[] t = table;</div><div class="line">              //移动到下一个非空的bucket位置</div><div class="line">              while (index &lt; t.length &amp;&amp; (next = t[index++]) == null)</div><div class="line">                  ;</div><div class="line">          &#125;</div><div class="line">          current = e;</div><div class="line">          return e;</div><div class="line">      &#125;</div></pre></td></tr></table></figure></p>
+<p>看了HashIterator实现后我们也就理解了HashMap不能按元素的插入顺序来访问了，但JDK中提供了LinkedHashMap来保存元素的插入顺序，其实就是在HashMap的基础上实现了一个循环双向链表。</p>
+<h1 id="HashMap中的重要函数实现"><a href="#HashMap中的重要函数实现" class="headerlink" title="HashMap中的重要函数实现"></a>HashMap中的重要函数实现</h1><h2 id="get函数实现"><a href="#get函数实现" class="headerlink" title="get函数实现"></a>get函数实现</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line">//get方法</div><div class="line">   public V get(Object key) &#123;</div><div class="line">       if (key == null)</div><div class="line">           return getForNullKey();</div><div class="line">       Entry&lt;K,V&gt; entry = getEntry(key);</div><div class="line"></div><div class="line">       return null == entry ? null : entry.getValue();</div><div class="line">   &#125;</div><div class="line"></div><div class="line">   //key为null</div><div class="line">   private V getForNullKey() &#123;</div><div class="line">    if (size == 0) &#123;</div><div class="line">        return null;</div><div class="line">    &#125;</div><div class="line">    //key为null的entrty都放在index为0的bucket</div><div class="line">    for (Entry&lt;K,V&gt; e = table[0]; e != null; e = e.next) &#123;</div><div class="line">        if (e.key == null)</div><div class="line">            return e.value;</div><div class="line">    &#125;</div><div class="line">    return null;</div><div class="line">&#125;</div><div class="line"></div><div class="line">//key不为null时</div><div class="line">final Entry&lt;K,V&gt; getEntry(Object key) &#123;</div><div class="line">       if (size == 0) &#123;</div><div class="line">           return null;</div><div class="line">       &#125;</div><div class="line"></div><div class="line">       int hash = (key == null) ? 0 : hash(key);</div><div class="line">       //通过hash函数计算的值在对应bucket查找，即遍历链表</div><div class="line">       for (Entry&lt;K,V&gt; e = table[indexFor(hash, table.length)];</div><div class="line">            e != null;</div><div class="line">            e = e.next) &#123;</div><div class="line">           Object k;</div><div class="line">           if (e.hash == hash &amp;&amp;</div><div class="line">               ((k = e.key) == key || (key != null &amp;&amp; key.equals(k))))</div><div class="line">               return e;</div><div class="line">       &#125;</div><div class="line">       return null;</div><div class="line">   &#125;</div></pre></td></tr></table></figure>
+<h2 id="put函数实现"><a href="#put函数实现" class="headerlink" title="put函数实现"></a>put函数实现</h2><p>put函数会根据key的hash函数值找到对应bucket的下标，若对应的bucket不为空，即发生了冲突，此时需要遍历bucket对应的Entry链表查看要插入的Key是否已经存在，若存在则替换原先的Value，不存在则在该bucket对应的链表头新插入一个Entry节点。若对应的bucket为空，则直接新建Entry存入对应bucket。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line">public V put(K key, V value) &#123;</div><div class="line">    if (table == EMPTY_TABLE) &#123;</div><div class="line">        inflateTable(threshold);</div><div class="line">    &#125;</div><div class="line">    if (key == null)</div><div class="line">        return putForNullKey(value);</div><div class="line">    int hash = hash(key);</div><div class="line">    int i = indexFor(hash, table.length);</div><div class="line">    //检查对应bucket是否为空（即是否发生冲突），非空的话则遍历对应链表</div><div class="line">    //查看Key是否已经存在</div><div class="line">    for (Entry&lt;K,V&gt; e = table[i]; e != null; e = e.next) &#123;</div><div class="line">        Object k;</div><div class="line">        //若key已存在 则替换原来的Value值</div><div class="line">        if (e.hash == hash &amp;&amp; ((k = e.key) == key || key.equals(k))) &#123;</div><div class="line">            V oldValue = e.value;</div><div class="line">            e.value = value;</div><div class="line">            e.recordAccess(this);</div><div class="line">            return oldValue;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    modCount++;</div><div class="line">    //否则使用头插法在链表头插入Entry</div><div class="line">    addEntry(hash, key, value, i);</div><div class="line">    return null;</div><div class="line">&#125;</div><div class="line"></div><div class="line">//key不存在，则添加Entry</div><div class="line">void addEntry(int hash, K key, V value, int bucketIndex) &#123;</div><div class="line">	//达到负载程度 需要扩容</div><div class="line">    if ((size &gt;= threshold) &amp;&amp; (null != table[bucketIndex])) &#123;</div><div class="line">        //原表基础上扩大两倍</div><div class="line">        resize(2 * table.length);</div><div class="line">        hash = (null != key) ? hash(key) : 0;</div><div class="line">        bucketIndex = indexFor(hash, table.length);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    createEntry(hash, key, value, bucketIndex);</div><div class="line">&#125;</div><div class="line"></div><div class="line">//创建Entry对象 使用头插法插入对应bucket的链表</div><div class="line">void createEntry(int hash, K key, V value, int bucketIndex) &#123;</div><div class="line">    Entry&lt;K,V&gt; e = table[bucketIndex];</div><div class="line">    table[bucketIndex] = new Entry&lt;&gt;(hash, key, value, e);</div><div class="line">    size++;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="hash函数实现"><a href="#hash函数实现" class="headerlink" title="hash函数实现"></a>hash函数实现</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">final int hash(Object k) &#123;</div><div class="line">    int h = hashSeed;</div><div class="line">    if (0 != h &amp;&amp; k instanceof String) &#123;</div><div class="line">        return sun.misc.Hashing.stringHash32((String) k);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    h ^= k.hashCode();</div><div class="line"></div><div class="line">    // This function ensures that hashCodes that differ only by</div><div class="line">    // constant multiples at each bit position have a bounded</div><div class="line">    // number of collisions (approximately 8 at default load factor).</div><div class="line">    h ^= (h &gt;&gt;&gt; 20) ^ (h &gt;&gt;&gt; 12);</div><div class="line">    return h ^ (h &gt;&gt;&gt; 7) ^ (h &gt;&gt;&gt; 4);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><h2 id="HashMap与HashTable"><a href="#HashMap与HashTable" class="headerlink" title="HashMap与HashTable"></a>HashMap与HashTable</h2><p>HashTable是早期JDK版本中的数据结构，现在已经基本不再使用了，HashMap与HasTable原理基本相同。主要区别除了HashMap在性能上的改进之外，还体现在:</p>
+<blockquote>
+<p>1、HashMap支持key和Value为null，而HashTable中不支持；<br>2、HashTable是线程安全的，而HashMap非线程安全;</p>
+</blockquote>
+<h2 id="HashMap工作原理"><a href="#HashMap工作原理" class="headerlink" title="HashMap工作原理"></a>HashMap工作原理</h2><p>HashMap是基于散列表的实现，结合了数组和链表的优点。HashMap中通过put和get存储和获取对象。存储对象时，我们将Key-Value传给put方法，它调用hashCode计算hash值从而得到bucket位置，进一步存储，在put方法中HashMap会根据当前bucket的占用情况自动调整容量(超过Load Facotr则resize为原来的2倍)；如果存储对象发生碰撞的时候，Hashmap通过链表将产生碰撞冲突的元素组织起来，在Java 8中，如果一个bucket中碰撞冲突的元素超过某个限制(默认是8)，则使用红黑树来替换链表，从而提高速度。。获取对象时，我们将Key传给get，它调用hashCode计算hash从而得到bucket位置，并进一步调用equals()方法确定键值对。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>*<a href="http://yikun.github.io/2015/04/01/Java-HashMap%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%E5%8F%8A%E5%AE%9E%E7%8E%B0/#6-_resize的实现" target="_blank" rel="external">http://yikun.github.io/2015/04/01/Java-HashMap%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%E5%8F%8A%E5%AE%9E%E7%8E%B0/#6-_resize的实现</a></p>
+
+      
+    </div>
+    
+    <div>
+      
+        
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/10/22/╥╘═Γ╢╧╡τ║≤mysql╞⌠╢»╩º░▄/" rel="next" title="断电引起的mysql启动失败">
+                <i class="fa fa-chevron-left"></i> 断电引起的mysql启动失败
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/12/23/Java─┌┤µ╖╓┼Σ╙δ╗╪╩╒▓▀┬╘/" rel="prev" title="Java内存分配与回收策略">
+                Java内存分配与回收策略 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/12/21/Java-HashMap╫▄╜ß/"
+           data-title="Java HashMap源码学习总结" data-url="http://yoursite.com/2016/12/21/Java-HashMap╫▄╜ß/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/default_avatar.jpg"
+               alt="linyi" />
+          <p class="site-author-name" itemprop="name">linyi</p>
+          <p class="site-description motion-element" itemprop="description">hello</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">9</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#基本思想"><span class="nav-number">1.</span> <span class="nav-text">基本思想</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HashMap中的数据结构"><span class="nav-number">2.</span> <span class="nav-text">HashMap中的数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Entry对象"><span class="nav-number">2.1.</span> <span class="nav-text">Entry对象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HashIterator"><span class="nav-number">2.2.</span> <span class="nav-text">HashIterator</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HashMap中的重要函数实现"><span class="nav-number">3.</span> <span class="nav-text">HashMap中的重要函数实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#get函数实现"><span class="nav-number">3.1.</span> <span class="nav-text">get函数实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#put函数实现"><span class="nav-number">3.2.</span> <span class="nav-text">put函数实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#hash函数实现"><span class="nav-number">3.3.</span> <span class="nav-text">hash函数实现</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#HashMap与HashTable"><span class="nav-number">4.1.</span> <span class="nav-text">HashMap与HashTable</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HashMap工作原理"><span class="nav-number">4.2.</span> <span class="nav-text">HashMap工作原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">4.3.</span> <span class="nav-text">参考</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">linyi</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"qinjiangling"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+  
+
+
+
+
+
+  
+  
+  
+
+  
+
+  
+
+</body>
+</html>

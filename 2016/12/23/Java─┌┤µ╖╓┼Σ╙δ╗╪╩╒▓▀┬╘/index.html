@@ -1,0 +1,582 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="Java对象的内存分配其实就是在堆上分配，对象主要分配在新生代的Eden区，如果启动了本地线程分配缓冲，则按线程优先分配在TLAB上。少数的情况会直接分配到老年代中。几点规则和总结。 Minor GC与FULL GC 新生代GC(Minor GC):指发生在新生代的垃圾回收，因为大多Java对象具有朝生夕灭的特性，所以Minor GC非常频繁，一般回收速度也非常快。老年代GC(Major GC/F">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java内存分配与回收策略">
+<meta property="og:url" content="http://yoursite.com/2016/12/23/Java─┌┤µ╖╓┼Σ╙δ╗╪╩╒▓▀┬╘/index.html">
+<meta property="og:site_name" content="My Blog">
+<meta property="og:description" content="Java对象的内存分配其实就是在堆上分配，对象主要分配在新生代的Eden区，如果启动了本地线程分配缓冲，则按线程优先分配在TLAB上。少数的情况会直接分配到老年代中。几点规则和总结。 Minor GC与FULL GC 新生代GC(Minor GC):指发生在新生代的垃圾回收，因为大多Java对象具有朝生夕灭的特性，所以Minor GC非常频繁，一般回收速度也非常快。老年代GC(Major GC/F">
+<meta property="og:image" content="http://o6w2205v2.bkt.clouddn.com/1.JPG??imageMogr2/thumbnail/!50p">
+<meta property="og:updated_time" content="2016-12-25T13:54:00.997Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java内存分配与回收策略">
+<meta name="twitter:description" content="Java对象的内存分配其实就是在堆上分配，对象主要分配在新生代的Eden区，如果启动了本地线程分配缓冲，则按线程优先分配在TLAB上。少数的情况会直接分配到老年代中。几点规则和总结。 Minor GC与FULL GC 新生代GC(Minor GC):指发生在新生代的垃圾回收，因为大多Java对象具有朝生夕灭的特性，所以Minor GC非常频繁，一般回收速度也非常快。老年代GC(Major GC/F">
+<meta name="twitter:image" content="http://o6w2205v2.bkt.clouddn.com/1.JPG??imageMogr2/thumbnail/!50p">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+  <title> Java内存分配与回收策略 | My Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">My Blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Java内存分配与回收策略
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-12-23T21:08:35+08:00" content="2016-12-23">
+              2016-12-23
+            </time>
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/12/23/Java─┌┤µ╖╓┼Σ╙δ╗╪╩╒▓▀┬╘/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/12/23/Java─┌┤µ╖╓┼Σ╙δ╗╪╩╒▓▀┬╘/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Java对象的内存分配其实就是在堆上分配，对象主要分配在新生代的Eden区，如果启动了本地线程分配缓冲，则按线程优先分配在TLAB上。少数的情况会直接分配到老年代中。几点规则和总结。</p>
+<h1 id="Minor-GC与FULL-GC"><a href="#Minor-GC与FULL-GC" class="headerlink" title="Minor GC与FULL GC"></a>Minor GC与FULL GC</h1><blockquote>
+<p>新生代GC(Minor GC):指发生在新生代的垃圾回收，因为大多Java对象具有朝生夕灭的特性，所以Minor GC非常频繁，一般回收速度也非常快。<br>老年代GC(Major GC/FULL GC)：指发生在老年代的GC，Major GC速度一般会比Minor GC慢十倍以上。</p>
+</blockquote>
+<h1 id="对象优先分配在Eden区"><a href="#对象优先分配在Eden区" class="headerlink" title="对象优先分配在Eden区"></a>对象优先分配在Eden区</h1><p>大多数情况下，对象在新生代的Eden区分配，当Eden区没有足够的空间时候，虚拟机会发起一次Minor GC。</p>
+<h1 id="大对象直接进入老年代"><a href="#大对象直接进入老年代" class="headerlink" title="大对象直接进入老年代"></a>大对象直接进入老年代</h1><p>大对象是指需要大量连续内存空间的Java对象，典型的大对象是那种很长的字符串以及数组。虚拟机提供了几个-XX:PretenureSizeThresHold参数，令大于这个值的对象直接在老年代分配。目的是避免在Eden区以及两个Survivor区之间发生大量的内存复制(新生代的垃圾回收采用了复制算法)。</p>
+<h1 id="长期存活的对象将进入老年代"><a href="#长期存活的对象将进入老年代" class="headerlink" title="长期存活的对象将进入老年代"></a>长期存活的对象将进入老年代</h1><p>Java虚拟机采用了分代收集的思想来管理内存，虚拟机通过给每个对象定义一个<strong>对象年龄计数器</strong>来标识哪些对象应该放在新生代，哪些对象应该放在老年代。如果对象在Enen区出生并经过第一次Minor GC后任然存活，并且能被Surivior容纳话，该对象将被移动到Surivior空间中并将对象年龄设为1；对象在Surivior区中每经过一次Minor GC并存活年龄就将增加1岁，当年龄增加到一定程度（默认15岁），就会将该对象移动到老年代中。</p>
+<h1 id="空间分配担保"><a href="#空间分配担保" class="headerlink" title="空间分配担保"></a>空间分配担保</h1><p>在发生Minor GC之前，虚拟机会检查老年代的最大可用连续空间是否大于新生代所有对象总空间，如果条件成立则Minor GC是安全的。如果不成立，则虚拟机会查看HeandlePromotionFailure的设置值是否允许担保失败。如果允许，那么继续检查老年代的最大可用连续空间是否大于新生代历次晋升到老年代对象的平均大小，大于，则将尝试一次Minor GC。如果小于或者HeandlePromotionFailure不允许冒险，则需要进行一次FULL GC。</p>
+<div align="center"><br><img src="http://o6w2205v2.bkt.clouddn.com/1.JPG??imageMogr2/thumbnail/!50p" alt="gc"><br></div>
+      
+    </div>
+    
+    <div>
+      
+        
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/12/21/Java-HashMap╫▄╜ß/" rel="next" title="Java HashMap源码学习总结">
+                <i class="fa fa-chevron-left"></i> Java HashMap源码学习总结
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/12/25/Java╨Θ─Γ╗·└α╝╙╘╪╗·╓╞/" rel="prev" title="Java虚拟机类加载机制">
+                Java虚拟机类加载机制 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/12/23/Java─┌┤µ╖╓┼Σ╙δ╗╪╩╒▓▀┬╘/"
+           data-title="Java内存分配与回收策略" data-url="http://yoursite.com/2016/12/23/Java─┌┤µ╖╓┼Σ╙δ╗╪╩╒▓▀┬╘/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/default_avatar.jpg"
+               alt="linyi" />
+          <p class="site-author-name" itemprop="name">linyi</p>
+          <p class="site-description motion-element" itemprop="description">hello</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">9</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Minor-GC与FULL-GC"><span class="nav-number">1.</span> <span class="nav-text">Minor GC与FULL GC</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#对象优先分配在Eden区"><span class="nav-number">2.</span> <span class="nav-text">对象优先分配在Eden区</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#大对象直接进入老年代"><span class="nav-number">3.</span> <span class="nav-text">大对象直接进入老年代</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#长期存活的对象将进入老年代"><span class="nav-number">4.</span> <span class="nav-text">长期存活的对象将进入老年代</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#空间分配担保"><span class="nav-number">5.</span> <span class="nav-text">空间分配担保</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">linyi</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"qinjiangling"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+  
+
+
+
+
+
+  
+  
+  
+
+  
+
+  
+
+</body>
+</html>
