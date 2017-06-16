@@ -1,0 +1,609 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.1" />
+
+
+
+
+
+
+<meta name="description" content="博客内容为深入&amp;lt;&amp;lt;理解理解Java虚拟机&amp;gt;&amp;gt;第三章读书笔记。 一、判断对象存活算法判断对象存活的算法书主要包括引用计数算法和可达性分析算法。 引用计数算法引用计数算法就是给对象添加一个引用计数器，每当一个地方引用对象时计数器值加一，引用失效时计数器值减一，计数器值为0的对象就是比克使用的。引用计数算法实现简单、判断效率很高，但很难解决对象间的相互循环引用问题。 可达性分析算">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM垃圾收集与内存分配">
+<meta property="og:url" content="http://yoursite.com/2016/10/11/JVM垃圾收集与内存分配/index.html">
+<meta property="og:site_name" content="My Blog">
+<meta property="og:description" content="博客内容为深入&amp;lt;&amp;lt;理解理解Java虚拟机&amp;gt;&amp;gt;第三章读书笔记。 一、判断对象存活算法判断对象存活的算法书主要包括引用计数算法和可达性分析算法。 引用计数算法引用计数算法就是给对象添加一个引用计数器，每当一个地方引用对象时计数器值加一，引用失效时计数器值减一，计数器值为0的对象就是比克使用的。引用计数算法实现简单、判断效率很高，但很难解决对象间的相互循环引用问题。 可达性分析算">
+<meta property="og:image" content="http://o6w2205v2.bkt.clouddn.com/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8.JPG">
+<meta property="og:updated_time" content="2016-12-26T14:11:09.284Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="JVM垃圾收集与内存分配">
+<meta name="twitter:description" content="博客内容为深入&amp;lt;&amp;lt;理解理解Java虚拟机&amp;gt;&amp;gt;第三章读书笔记。 一、判断对象存活算法判断对象存活的算法书主要包括引用计数算法和可达性分析算法。 引用计数算法引用计数算法就是给对象添加一个引用计数器，每当一个地方引用对象时计数器值加一，引用失效时计数器值减一，计数器值为0的对象就是比克使用的。引用计数算法实现简单、判断效率很高，但很难解决对象间的相互循环引用问题。 可达性分析算">
+<meta name="twitter:image" content="http://o6w2205v2.bkt.clouddn.com/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8.JPG">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: {"position":"right","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+  <title> JVM垃圾收集与内存分配 | My Blog </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-right page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">My Blog</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                JVM垃圾收集与内存分配
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-10-11T21:03:34+08:00" content="2016-10-11">
+              2016-10-11
+            </time>
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/10/11/JVM垃圾收集与内存分配/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/10/11/JVM垃圾收集与内存分配/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>博客内容为深入&lt;&lt;理解理解Java虚拟机&gt;&gt;第三章读书笔记。</p>
+<h1 id="一、判断对象存活算法"><a href="#一、判断对象存活算法" class="headerlink" title="一、判断对象存活算法"></a>一、判断对象存活算法</h1><p>判断对象存活的算法书主要包括<strong>引用计数算法</strong>和<strong>可达性分析算法</strong>。</p>
+<h2 id="引用计数算法"><a href="#引用计数算法" class="headerlink" title="引用计数算法"></a>引用计数算法</h2><p>引用计数算法就是给对象添加一个引用计数器，每当一个地方引用对象时计数器值加一，引用失效时计数器值减一，计数器值为0的对象就是比克使用的。引用计数算法实现简单、判断效率很高，但很难解决对象间的相互循环引用问题。</p>
+<h2 id="可达性分析算法"><a href="#可达性分析算法" class="headerlink" title="可达性分析算法"></a>可达性分析算法</h2><p>基本思路是通过一系列称为”GC Roots”的对象作为起始点，从这些节点开始往下搜索，当一个对象与GC Roots是不可达时，则证明此对象是不可用的。Java中可作为GC Roots对象包括下面几种:</p>
+<blockquote>
+<p>虚拟机栈(栈帧中的本地变量表)中引用的对象<br>方法区中类静态属性引用的对象<br>方法区中常量引用的对象<br>本地方法中引用的对象</p>
+</blockquote>
+<h1 id="垃圾收集算法"><a href="#垃圾收集算法" class="headerlink" title="垃圾收集算法"></a>垃圾收集算法</h1><h2 id="标记-清除算法"><a href="#标记-清除算法" class="headerlink" title="标记-清除算法"></a>标记-清除算法</h2><p>算法分为<strong>标记</strong>和<strong>清除</strong>两个阶段:首先标记出所有需要回收的对象，标记完成后统一回收所有被标记的对象。标记-清除算法存在两个问题：</p>
+<blockquote>
+<p>1、一个是标记和清除过程效率低；<br>2、另一个是在标记清除之后会产生大量不连续的内存碎片(可能因分配较大对象时无法找到足够大的连续内存而不得不提前触发垃圾回收)。</p>
+</blockquote>
+<h2 id="复制算法"><a href="#复制算法" class="headerlink" title="复制算法"></a>复制算法</h2><p>算法既将可用内存按容量划分为大小相等的两块，每次只使用其中的一块；当这一块内存用完了，就将还存活的对象复制到另一块上面，然后将这一块已使用的内存空间一次性清理掉。复制算法常用来回收新生代，由于新生代中对象大部分是”朝生夕死”的，所以并不需要按照1:1的比例来划分内存空间，而是将内存划分为一块较大的Eden空间和两块较小的Survivor空间，每次使用Eden和其中的一块的Survivor。回收时候将Eden空间和Survivor中还存活的对象复制到另一块Survivior空间上。HotSpot虚拟机默认Eden和Survivor大小比例为8:1。注意由于无法保证每次回收都只有不多于10%的对象存活，当Survivor空间不够时，需要依赖老年代进行分配担保，对象直接进入老年代。</p>
+<h2 id="标记-整理算法"><a href="#标记-整理算法" class="headerlink" title="标记-整理算法"></a>标记-整理算法</h2><p>标记-整理算法在标记后，让所有的存活的对象向一端移动，然后直接清理掉边界以外的内存。标记-整理算法用于老年代的垃圾回收。</p>
+<h1 id="垃圾收集器"><a href="#垃圾收集器" class="headerlink" title="垃圾收集器"></a>垃圾收集器</h1><p>垃圾收集器是内存回收的具体实现，下图是七种作用于不同分代的收集器，如果两个收集器之间存在连线，则说明它们之间可以搭配使用。<br><img src="http://o6w2205v2.bkt.clouddn.com/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8.JPG" alt="garbage collect"></p>
+<h2 id="Serial收集器"><a href="#Serial收集器" class="headerlink" title="Serial收集器"></a>Serial收集器</h2><p>Serial收集器是最基本、发展历史最悠久的收集器，主要的特点包括：</p>
+<blockquote>
+<p>1、Serial收集器为单线程收集器,在其进行垃圾收集时，必须暂停其他所有的工作线程；由虚拟机在后台自动发起和完成的，在用户不可见的情况下把用户正常工作的线程全部停掉。<br>2、虚拟机在Client模式下的默认新生代收集器；因为Serial收集器简单高效(与其他收集器的单线程相比)，同时在用户的桌面应用场景中，分配给虚拟机管理的内存不会太大(分配给新生代的就更少)，所以停顿时间通常是可以接受的。</p>
+</blockquote>
+<h2 id="ParNew收集器"><a href="#ParNew收集器" class="headerlink" title="ParNew收集器"></a>ParNew收集器</h2><p>ParNew收集器其实就是Serial收集器的多线程版本，虽然与Serial相比没有太多的创新之处，但ParNew收集器是运行在Server模式下的虚拟机中首选新生代收集器，其中一个重要原因是目前除了Serial收集器，只有它能与CMS收集器配合工作。</p>
+<h2 id="Parallel-Scavenge收集器"><a href="#Parallel-Scavenge收集器" class="headerlink" title="Parallel Scavenge收集器"></a>Parallel Scavenge收集器</h2><p>Parallel Scavenge 收集器是一个新生代收集器，是使用复制算法能够并行的多线程收集器。CMS等收集器的关注点是尽可能地缩短垃圾收集时的用户停顿时间，而Parallel Scavenge的目标是达到一个可控制的<strong>吞吐量</strong>(吞吐量=运行用户代码时间/(运行用户代码时间+垃圾收集时间))。GC停顿时间缩短是牺牲吞吐量和新生代空间来换取的:系统把新生代调小一些，收集300MB肯定比收集500MB肯定要快，这也导致垃圾收集更频繁一些，原来10S收集一次、每次停顿100毫秒，现在变成5s收集一次、每次停顿70毫秒；停顿时间缩短，但吞吐量也降下来了。</p>
+<h2 id="Serila-Old收集器"><a href="#Serila-Old收集器" class="headerlink" title="Serila Old收集器"></a>Serila Old收集器</h2><p>Serial Old收集器是Serial收集器的老年代版本，同样是一个单线程收集器，使用”标记-整理”算法，主要意义也是在Client模式下的虚拟机使用。如果是在Server模式下Serial Old收集器还有两种用途：一中是在JDK1.5以及之前佛如版本中与Parallel Scavenge收集器搭配使用；另一种用途是作为CMS 收集器的预备方案，在并发收集发生Concurrent Mode Failure时使用。</p>
+<h2 id="Parallel-Old收集器"><a href="#Parallel-Old收集器" class="headerlink" title="Parallel Old收集器"></a>Parallel Old收集器</h2><p>Parallel Old收集器是Parallel Scavenge收集器的老年代版本，使用多线程和”标记-整理”算法，在JDK1.6之后才开始提供使用。</p>
+<h2 id="CMS收集器"><a href="#CMS收集器" class="headerlink" title="CMS收集器"></a>CMS收集器</h2><p>CMS(Concurrent Mark Sweep)收集器基于”标记-清除”算法实现，以最短时间回收停顿时间为目标。CMS收集器的整个运作过程分为四个部分，包括：</p>
+<blockquote>
+<p>1、初始标记<br>2、并发标记<br>3、重新标记<br>4、并发清除</p>
+</blockquote>
+<p>其中初始标记和重新标记过程仍需要”Stop The World”。初始标记仅仅只是标记一下与GC Roots崩直接关联到的对象，速度很快，并发标记阶段进行GC Roots Tracing的过程，而重新标记是为了修正并发标记期间因用户程序继续运作而导致标记产生变动的那一部分的对象的标记记录。整个过程中耗时最长的并发标记和并发清除阶段都可以和用户线程一起工作。CMS收集器存在三个明显的缺点:</p>
+<blockquote>
+<p>1、CMS收集器对CPU资源非常敏感。在并发阶段，CMS收集器虽然不会导致用户线程停顿，但是会占用一部分CPU资源而使用户线程变慢，总吞吐量会降低。<br>2、CMS收集器无法处理浮动垃圾，可能会出现”Conncurrent Mode Failure”出现而导致另一次的Full GC的产生。浮动垃圾是指在并发清理阶段用户线程产生的垃圾，由于其产生在标记过程之后，所以只好留到下一次GC时再清理掉，所以称为浮动垃圾。注意的是垃圾收集阶段用户线程还需要运行，那也就还要留足够的内存空间给用户线程使用，因此CMS收集器不能像其他收集器一样等到老年代几乎全部填满时候再进行收集。在JDK1.6中CMS收集器的默认启动阀值提高到了92%。如果CMS运行期间预留的内存无法满足程序的需要，就会出现”Concurrent Mode Failure”失败，这时候虚拟机将启动预备方案:临时启动 Serial Old收集器来重新进行老年代的垃圾回收，这样停顿时间就长了。<br>3、CMS基于”标记-清除”算法，会有大量的空间碎片产生。</p>
+</blockquote>
+<h2 id="G1收集器"><a href="#G1收集器" class="headerlink" title="G1收集器"></a>G1收集器</h2><p>G1是一款面向服务端应用的垃圾收集器，与其他GC收集器相比具有如下的特点:</p>
+<blockquote>
+<p>1、并行与并发：充分利用多CPU、多核环境的硬件优势，使用多CPU来缩短Stop-The-World的时间<br>2、分代收集<br>3、空间整合:从整体来看是基于”标记-整理”算法，从局部(两个Region之间)上是基于”复制”算法实现<br>4、可预测的停顿：除追求低停顿之外，还能建议可预测的停顿时间模型，能让使用者明确指定在长度为M毫秒的时间内消耗在垃圾收集的时间不得超过N毫秒。</p>
+</blockquote>
+<p>在G1之前的其他收集器进行收集的范围都是整个新生代和老年代。使用G1收集器的整个Java内存布局和其他收集器有很大的差别，它将整个Java堆划分为大小相等的独立Region，虽然还保留着新生代和老年代的概念，但新生代和老年代不再是物理隔离的了它们都是一部分Region(不需要连续)的集合。</p>
+
+      
+    </div>
+    
+    <div>
+      
+        
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/10/10/Java内存区域/" rel="next" title="Java内存区域">
+                <i class="fa fa-chevron-left"></i> Java内存区域
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/10/22/断电引起的mysql启动失败/" rel="prev" title="断电引起的mysql启动失败">
+                断电引起的mysql启动失败 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/10/11/JVM垃圾收集与内存分配/"
+           data-title="JVM垃圾收集与内存分配" data-url="http://yoursite.com/2016/10/11/JVM垃圾收集与内存分配/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/default_avatar.jpg"
+               alt="linyi" />
+          <p class="site-author-name" itemprop="name">linyi</p>
+          <p class="site-description motion-element" itemprop="description">hello</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">8</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#一、判断对象存活算法"><span class="nav-number">1.</span> <span class="nav-text">一、判断对象存活算法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#引用计数算法"><span class="nav-number">1.1.</span> <span class="nav-text">引用计数算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#可达性分析算法"><span class="nav-number">1.2.</span> <span class="nav-text">可达性分析算法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#垃圾收集算法"><span class="nav-number">2.</span> <span class="nav-text">垃圾收集算法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#标记-清除算法"><span class="nav-number">2.1.</span> <span class="nav-text">标记-清除算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#复制算法"><span class="nav-number">2.2.</span> <span class="nav-text">复制算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#标记-整理算法"><span class="nav-number">2.3.</span> <span class="nav-text">标记-整理算法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#垃圾收集器"><span class="nav-number">3.</span> <span class="nav-text">垃圾收集器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Serial收集器"><span class="nav-number">3.1.</span> <span class="nav-text">Serial收集器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ParNew收集器"><span class="nav-number">3.2.</span> <span class="nav-text">ParNew收集器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Parallel-Scavenge收集器"><span class="nav-number">3.3.</span> <span class="nav-text">Parallel Scavenge收集器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Serila-Old收集器"><span class="nav-number">3.4.</span> <span class="nav-text">Serila Old收集器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Parallel-Old收集器"><span class="nav-number">3.5.</span> <span class="nav-text">Parallel Old收集器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CMS收集器"><span class="nav-number">3.6.</span> <span class="nav-text">CMS收集器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#G1收集器"><span class="nav-number">3.7.</span> <span class="nav-text">G1收集器</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">linyi</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"qinjiangling"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+  
+
+
+
+
+
+  
+  
+  
+
+  
+
+  
+
+</body>
+</html>
